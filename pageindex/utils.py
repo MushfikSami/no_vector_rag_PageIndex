@@ -19,12 +19,16 @@ from types import SimpleNamespace as config
 
 CHATGPT_API_KEY = os.getenv("CHATGPT_API_KEY")
 
-def count_tokens(text, model=None):
-    if not text:
-        return 0
-    enc = tiktoken.encoding_for_model(model)
-    tokens = enc.encode(text)
-    return len(tokens)
+def count_tokens(text: str, model: str) -> int:
+    
+    try:
+        # Tries to find the exact OpenAI model
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fallback to standard OpenAI encoding for local models (vLLM, Ollama, etc.)
+        enc = tiktoken.get_encoding("cl100k_base")
+        
+    return len(enc.encode(text))
 
 def ChatGPT_API_with_finish_reason(model, prompt, api_key=CHATGPT_API_KEY, chat_history=None):
     max_retries = 10
@@ -140,14 +144,14 @@ def extract_json(content):
         json_content = ' '.join(json_content.split())  # Normalize whitespace
 
         # Attempt to parse and return the JSON object
-        return json.loads(json_content)
+        return json.loads(json_content,strict=False)
     except json.JSONDecodeError as e:
         logging.error(f"Failed to extract JSON: {e}")
         # Try to clean up the content further if initial parsing fails
         try:
             # Remove any trailing commas before closing brackets/braces
             json_content = json_content.replace(',]', ']').replace(',}', '}')
-            return json.loads(json_content)
+            return json.loads(json_content,strict=False)
         except:
             logging.error("Failed to parse JSON even after cleanup")
             return {}
@@ -606,6 +610,8 @@ async def generate_node_summary(node, model=None):
     prompt = f"""You are given a part of a document, your task is to generate a description of the partial document about what are main points covered in the partial document.
 
     Partial Document Text: {node['text']}
+    
+    CRITICAL REQUIREMENT: You must write the description entirely in Bengali (বাংলা). Do not use English.
     
     Directly return the description, do not include any other text.
     """

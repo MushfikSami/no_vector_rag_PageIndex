@@ -1,0 +1,167 @@
+{
+  "doc_name": "NIPS-2017-attention-is-all-you-need-Paper.pdf",
+  "structure": [
+    {
+      "title": "Introduction",
+      "start_index": 1,
+      "end_index": 2,
+      "node_id": "0000",
+      "summary": "The partial document introduces the Transformer model, a novel neural network architecture for sequence transduction tasks such as machine translation. It emphasizes that the Transformer relies entirely on attention mechanisms, eliminating the need for recurrent or convolutional layers. Key points include: the model's architecture is based on self-attention and feed-forward networks, enabling full parallelization during training and significantly reducing training time. The Transformer achieves state-of-the-art performance on machine translation benchmarks (WMT 2014 English-to-German and English-to-French), outperforming previous models, including ensembles, with faster training and higher BLEU scores. The document highlights the advantages of self-attention over recurrent and convolutional models, particularly in capturing long-range dependencies efficiently. It also outlines the encoder-decoder structure, with the encoder and decoder each composed of multiple identical layers featuring multi-head self-attention and position-wise feed-forward networks."
+    },
+    {
+      "title": "Background",
+      "start_index": 2,
+      "end_index": 2,
+      "node_id": "0001",
+      "summary": "The partial document introduces the Transformer model, a novel architecture that replaces recurrent and convolutional structures with an attention-based mechanism to enable fully parallelizable computation. It highlights the limitations of recurrent models, such as sequential computation and poor scalability at long sequence lengths, and discusses how attention mechanisms, particularly self-attention, allow modeling of long-range dependencies without regard to distance. The document contrasts the Transformer with prior models like ConvS2S, ByteNet, and Neural GPU, which use convolutional layers but still suffer from increasing computational complexity with distance. The Transformer overcomes this by maintaining constant computational complexity for long-range dependencies through self-attention, enhanced by multi-head attention to preserve effective resolution. The architecture is based on an encoder-decoder structure, with both encoder and decoder composed of stacked layers, each containing multi-head self-attention and feed-forward sub-layers. The model is designed to be fully parallelizable, enabling faster training and improved performance, as demonstrated by state-of-the-art results in machine translation."
+    },
+    {
+      "title": "Model Architecture",
+      "start_index": 3,
+      "end_index": 3,
+      "nodes": [
+        {
+          "title": "Encoder and Decoder Stacks",
+          "start_index": 3,
+          "end_index": 5,
+          "node_id": "0003",
+          "summary": "The partial document describes the architecture and key components of the Transformer model, focusing on its self-attention mechanism, multi-head attention, residual connections, layer normalization, feed-forward networks, embeddings, and positional encoding. It explains how the encoder and decoder are composed of multiple identical layers with residual connections and layer normalization. The core attention mechanism, scaled dot-product attention, is detailed, including its computation using queries, keys, and values, with a scaling factor to prevent gradient issues. Multi-head attention is introduced as a way to allow the model to jointly attend to information from different subspaces, with eight parallel attention heads. The document outlines three applications of attention in the model: encoder self-attention, decoder self-attention (with masking to maintain auto-regressive properties), and encoder-decoder attention. Position-wise feed-forward networks are described as two linear transformations with a ReLU activation, applied independently to each position. Embeddings and softmax are used for input and output token representation, with shared weight matrices. Finally, positional encoding is introduced to provide information about token order, since the model lacks recurrence or convolution."
+        },
+        {
+          "title": "Attention",
+          "start_index": 5,
+          "end_index": 3,
+          "nodes": [
+            {
+              "title": "Scaled Dot-Product Attention",
+              "start_index": 4,
+              "end_index": 4,
+              "node_id": "0005",
+              "summary": "The partial document discusses the scaled dot-product attention mechanism and multi-head attention, which are key components in transformer models. It explains that scaled dot-product attention computes attention by taking the dot product of queries and keys, scaling by $ \\frac{1}{\\sqrt{d_k}} $, applying softmax to obtain weights, and then using these weights to compute a weighted sum of values. The scaling is introduced to prevent large dot product values that can lead to small gradients in the softmax function, especially when $ d_k $ is large. The document highlights that dot-product attention is more efficient than additive attention due to optimized matrix operations, despite additive attention performing better without scaling for large $ d_k $. It then introduces multi-head attention, where queries, keys, and values are linearly projected into multiple subspaces (h times), and attention is computed in parallel across these subspaces. The outputs from each head are concatenated and projected again to produce the final output. This allows the model to capture diverse contextual information simultaneously, improving performance over single-head attention."
+            },
+            {
+              "title": "Multi-Head Attention",
+              "start_index": 5,
+              "end_index": 5,
+              "node_id": "0006",
+              "summary": "The partial document describes the architecture and key components of the Transformer model, focusing on multi-head attention, position-wise feed-forward networks, embeddings, and positional encoding. It explains that multi-head attention uses multiple parallel attention layers (h=8), with each head operating on reduced-dimensional projections of queries, keys, and values (dmodel=512, dk=dv=64), maintaining computational efficiency. The three applications of attention are: encoder-decoder attention (queries from decoder, keys/values from encoder), self-attention in the encoder (all inputs from the same layer), and self-attention in the decoder with masking to preserve auto-regressive properties. The position-wise feed-forward networks apply identical transformations across positions using two linear layers with ReLU activation, with input/output dimension dmodel=512 and inner layer dimension dff=2048. Embeddings map tokens to dmodel-dimensional vectors, and the model shares embedding and output weight matrices, with scaling by \u221admodel. Positional encoding is added to input embeddings to provide sequence order information, as the model lacks recurrence or convolution."
+            },
+            {
+              "title": "Applications of Attention in our Model",
+              "start_index": 5,
+              "end_index": 5,
+              "node_id": "0007",
+              "summary": "The partial document describes the architecture and key components of the Transformer model, focusing on multi-head attention, position-wise feed-forward networks, embeddings, and positional encoding. It explains that multi-head attention uses multiple parallel attention layers (h=8), with each head operating on reduced-dimensional projections of queries, keys, and values (dk=dv=dmodel/h=64), maintaining computational efficiency. The three applications of attention are: encoder-decoder attention (queries from decoder, keys/values from encoder), self-attention in the encoder (all inputs from the same layer), and self-attention in the decoder with masking to preserve auto-regressive properties. The position-wise feed-forward networks apply identical transformations across positions using two linear layers with ReLU activation, with input/output dimension dmodel=512 and inner layer dimension dff=2048. Embeddings map tokens to dmodel-dimensional vectors, with shared weight matrices between embeddings and the output softmax layer. Positional encoding is added to input embeddings to provide information about token order, since the model lacks recurrence or convolution."
+            }
+          ],
+          "node_id": "0004",
+          "summary": "The partial document discusses the key components of a project management plan, including scope definition, timeline development, resource allocation, risk assessment, and communication strategies. It emphasizes the importance of clear objectives, stakeholder engagement, and iterative progress tracking to ensure project success."
+        },
+        {
+          "title": "Position-wise Feed-Forward Networks",
+          "start_index": 5,
+          "end_index": 6,
+          "node_id": "0008",
+          "summary": "The partial document covers key components and design choices of the Transformer model, focusing on multi-head attention, position-wise feed-forward networks, embeddings, positional encoding, and a comparative analysis of self-attention versus recurrent and convolutional layers. Main points include:\n\n- **Multi-Head Attention**: The model uses 8 parallel attention heads with reduced dimensionality (d_model = 512, d_k = d_v = 64), enabling efficient computation while capturing diverse attention patterns. The attention mechanism is applied in three contexts: encoder-decoder attention, encoder self-attention, and decoder self-attention with masking to preserve auto-regressive properties.\n\n- **Position-wise Feed-Forward Networks**: Each layer includes a fully connected network applied independently to each position, consisting of two linear transformations with a ReLU activation. The input and output dimension is 512, with an inner layer of 2048.\n\n- **Embeddings and Softmax**: Input and output tokens are converted to d_model-dimensional vectors using learned embeddings. A shared weight matrix is used for embeddings and the pre-softmax transformation, improving parameter efficiency.\n\n- **Positional Encoding**: Since the model lacks recurrence or convolution, sinusoidal positional encodings are added to input embeddings to provide information about token positions. These encodings allow the model to learn relative positions and generalize to longer sequences.\n\n- **Comparison of Layer Types**: The document evaluates self-attention, recurrent, and convolutional layers based on computational complexity, parallelization potential, and path length for long-range dependencies. Self-attention enables constant-depth connections between all positions, offering faster computation and shorter path lengths compared to recurrent and convolutional layers, especially for typical sequence lengths in machine translation.\n\nOverall, the document emphasizes the advantages of self-attention in enabling parallelization, reducing path length for long-range dependencies, and maintaining computational efficiency."
+        },
+        {
+          "title": "Embeddings and Softmax",
+          "start_index": 6,
+          "end_index": 6,
+          "node_id": "0009",
+          "summary": "The partial document discusses the comparative analysis of different layer types\u2014self-attention, recurrent, convolutional, and restricted self-attention\u2014in terms of computational complexity, parallelization capability, and path length for modeling sequence data. Key points include:\n\n- Table 1 summarizes the maximum path length, per-layer computational complexity, and minimum number of sequential operations for each layer type, with variables such as sequence length (n), representation dimension (d), kernel size (k), and neighborhood size (r).\n- Self-attention has O(n\u00b2d) complexity, O(1) sequential operations, and O(1) maximum path length, enabling efficient modeling of long-range dependencies.\n- Recurrent layers have O(nd\u00b2) complexity, O(n) sequential operations, and O(n) path length, limiting parallelization and scalability.\n- Convolutional layers have O(knd\u00b2) complexity, O(1) sequential operations, and O(log\u2096(n)) path length, offering moderate efficiency.\n- Restricted self-attention reduces complexity to O(rd n) and path length to O(n/r), balancing efficiency and coverage.\n- Positional encodings are introduced using sinusoidal functions of varying frequencies to enable the model to learn relative positions and generalize to longer sequences.\n- The choice of sinusoidal positional encodings over learned embeddings is motivated by better extrapolation to unseen sequence lengths.\n- The section emphasizes the advantages of self-attention in reducing path length and enabling parallel computation, which enhances learning of long-range dependencies compared to recurrent and convolutional layers."
+        },
+        {
+          "title": "Positional Encoding",
+          "start_index": 6,
+          "end_index": 6,
+          "node_id": "0010",
+          "summary": "The partial document discusses the comparative analysis of different layer types\u2014self-attention, recurrent, convolutional, and restricted self-attention\u2014in terms of computational complexity, parallelizability, and path length for modeling sequence data. Key points include:\n\n- Table 1 summarizes the maximum path length, per-layer computational complexity, and minimum number of sequential operations for each layer type, with variables such as sequence length (n), representation dimension (d), kernel size (k), and neighborhood size (r).\n- Self-attention has O(n\u00b2d) complexity, O(1) sequential operations, and O(1) maximum path length, enabling efficient modeling of long-range dependencies.\n- Recurrent layers have O(nd\u00b2) complexity, O(n) sequential operations, and O(n) path length, limiting parallelization and scalability.\n- Convolutional layers have O(knd\u00b2) complexity, O(1) sequential operations, and O(log\u2096(n)) path length, offering moderate efficiency.\n- Restricted self-attention reduces complexity to O(rd n) and path length to O(n/r), balancing efficiency and coverage.\n- Positional encodings are introduced using sinusoidal functions of varying frequencies to enable the model to learn relative positions and generalize to longer sequences.\n- The sinusoidal positional encoding allows linear relationships between positions, aiding in learning relative dependencies.\n- The model's design prioritizes short path lengths and high parallelization, making self-attention superior for long-range dependency modeling compared to recurrent and convolutional layers.\n- The document also notes that learned positional embeddings yield similar performance, but sinusoidal encodings are preferred for better extrapolation to longer sequences."
+        }
+      ],
+      "node_id": "0002",
+      "summary": "The partial document describes the architecture and key components of the Transformer model, focusing on the encoder and decoder stacks, residual connections, layer normalization, and attention mechanisms. It explains that both the encoder and decoder consist of multiple identical layers (N=6), each containing sub-layers with residual connections and layer normalization. The decoder includes an additional multi-head attention sub-layer that attends to the encoder's output. The document highlights the use of masking in the decoder to ensure autoregressive behavior, where predictions depend only on previous positions. It then introduces the attention mechanism, specifically the Scaled Dot-Product Attention, which computes output as a weighted sum of values based on compatibility (dot product) between queries and keys, scaled by the square root of the key dimension to stabilize gradients."
+    },
+    {
+      "title": "Why Self-Attention",
+      "start_index": 6,
+      "end_index": 7,
+      "node_id": "0011",
+      "summary": "The partial document discusses the design and analysis of self-attention mechanisms in neural network architectures, particularly in the context of sequence transduction tasks such as machine translation. Key points covered include:\n\n- A comparison of different layer types (self-attention, recurrent, convolutional, and restricted self-attention) in terms of computational complexity per layer, minimum number of sequential operations, and maximum path length between input and output positions.\n- Self-attention layers are shown to have constant sequential operations and short path lengths, enabling efficient modeling of long-range dependencies, unlike recurrent layers which require O(n) sequential steps and convolutional layers which require O(logk(n)) or O(n/k) layers for full connectivity.\n- The use of sinusoidal positional encodings in the model to represent position information, which allows the model to learn relative positions and generalize to longer sequences than seen during training.\n- A discussion on the advantages of self-attention over recurrent and convolutional layers in terms of computational efficiency, parallelization, and modeling of long-range dependencies.\n- Training details for the model, including data sources (WMT 2014 English-German and English-French datasets), batching strategy, hardware (8 NVIDIA P100 GPUs), training duration, and optimization using Adam with a learning rate schedule based on warm-up and inverse square root decay.\n- Regularization techniques such as residual dropout (with a dropout rate of 0.1 in the base model) applied to sub-layers and embeddings to prevent overfitting.\n\nOverall, the document emphasizes the efficiency, scalability, and effectiveness of self-attention mechanisms in deep learning models for sequence modeling."
+    },
+    {
+      "title": "Training",
+      "start_index": 7,
+      "end_index": 7,
+      "nodes": [
+        {
+          "title": "Training Data and Batching",
+          "start_index": 7,
+          "end_index": 7,
+          "node_id": "0013",
+          "summary": "The partial document covers key aspects of model architecture, training setup, and regularization techniques. It discusses the limitations and trade-offs of convolutional layers compared to self-attention, highlighting that while convolutional layers can model long-range dependencies, they require deeper stacks or dilated convolutions, increasing path length and computational cost. It notes that separable convolutions reduce complexity but still do not match the efficiency of self-attention combined with feed-forward layers, which is the approach used in the model. The document also mentions the interpretability benefits of self-attention, with attention heads learning syntactic and semantic roles. In the training section, it describes the use of the WMT 2014 English-German and English-French datasets with byte-pair encoding and word-piece vocabularies, batching by approximate sequence length, and training on 8 NVIDIA P100 GPUs. Training durations and step times are provided for base and big models. The Adam optimizer is used with a learning rate schedule that increases linearly during a warm-up phase and then decreases inversely with the square root of the step number. Regularization techniques include residual dropout and dropout on embeddings and positional encodings, with a dropout rate of 0.1 for the base model."
+        },
+        {
+          "title": "Hardware and Schedule",
+          "start_index": 7,
+          "end_index": 7,
+          "node_id": "0014",
+          "summary": "The partial document covers key aspects of model architecture, training setup, and regularization techniques. It discusses the limitations and trade-offs of convolutional layers compared to self-attention, highlighting that while convolutional layers can model long-range dependencies, they require deeper stacks or dilated structures, increasing path length and computational cost. It notes that separable convolutions reduce complexity but still match the computational cost of self-attention combined with feed-forward layers, which motivates the use of self-attention in the model. The document also mentions the interpretability benefits of self-attention, with attention heads learning syntactic and semantic roles. In the training section, it describes the use of the WMT 2014 English-German and English-French datasets with byte-pair encoding and word-piece vocabularies, batching by approximate sequence length, and training on 8 NVIDIA P100 GPUs. Training durations and step times are provided for both base and big models. The Adam optimizer is used with a learning rate schedule that increases linearly during a warm-up phase and then decreases inversely with the square root of the step number. Regularization techniques include residual dropout applied to sub-layers and embeddings, with a dropout rate of 0.1 for the base model."
+        },
+        {
+          "title": "Optimizer",
+          "start_index": 7,
+          "end_index": 7,
+          "node_id": "0015",
+          "summary": "The partial document covers key aspects of model architecture, training setup, and regularization techniques. It discusses the limitations and trade-offs of convolutional layers compared to self-attention, highlighting that while convolutional layers can model long-range dependencies, they require deeper stacks or dilated convolutions, increasing path length and computational cost. It notes that separable convolutions reduce complexity but still do not match the efficiency of the self-attention and feed-forward approach used in the model. The document also emphasizes the interpretability benefits of self-attention, with attention heads learning syntactic and semantic roles. In the training section, it describes the use of the WMT 2014 datasets for English-German and English-French translation, with tokenization via byte-pair encoding and word-piece vocabularies. Batching is based on approximate sequence length, with batches containing around 25,000 source and target tokens. Training was conducted on 8 NVIDIA P100 GPUs, with base models trained for 100,000 steps (12 hours) and big models for 300,000 steps (3.5 days). The Adam optimizer is used with a learning rate schedule that increases linearly for the first 4,000 steps and then decreases proportionally to the inverse square root of the step number. Regularization includes residual dropout with a rate of 0.1 in the base model, applied to sub-layer outputs and embedding sums."
+        },
+        {
+          "title": "Regularization",
+          "start_index": 7,
+          "end_index": 8,
+          "node_id": "0016",
+          "summary": "The partial document covers key aspects of the Transformer model, focusing on its architecture, training methodology, and performance evaluation. Main points include: (1) the use of self-attention instead of recurrent or convolutional layers to reduce path length and computational cost, with separable convolutions compared to attention mechanisms; (2) training details such as dataset usage (WMT 2014 English-German and English-French), tokenization via byte-pair encoding, batching by sequence length, and hardware setup (8 P100 GPUs); (3) training schedule and optimizer settings, including Adam with a learning rate schedule based on warmup and inverse square root decay; (4) regularization techniques like residual dropout and label smoothing; (5) performance results showing the Transformer outperforms prior models on machine translation tasks (BLEU scores of 28.4 and 41.0 for English-German and English-French, respectively) with significantly lower training cost; (6) ablation studies in Table 3 demonstrating the impact of attention head count and dimensionality on model performance. The document emphasizes the efficiency, effectiveness, and scalability of the Transformer architecture."
+        }
+      ],
+      "node_id": "0012",
+      "summary": "The partial document covers key aspects of model architecture, training setup, and regularization techniques. It discusses the limitations and trade-offs of convolutional layers compared to self-attention, highlighting that while convolutional layers can model long-range dependencies, they require deeper stacks or dilated structures, increasing path length and computational cost. It notes that separable convolutions reduce complexity but still match the computational cost of self-attention combined with feed-forward layers, which motivates the use of self-attention in the model. The document also mentions the interpretability benefits of self-attention, with attention heads learning syntactic and semantic roles. In the training section, it describes the use of the WMT 2014 English-German and English-French datasets with byte-pair encoding and word-piece vocabularies, batching by approximate sequence length, and training on 8 NVIDIA P100 GPUs. Training durations and step times are provided for base and big models. The Adam optimizer is used with a learning rate schedule that increases linearly during a warm-up phase and then decreases inversely with the square root of the step number. Regularization techniques include residual dropout and dropout on embeddings and positional encodings, with a dropout rate of 0.1 for the base model."
+    },
+    {
+      "title": "Results",
+      "start_index": 8,
+      "end_index": 8,
+      "nodes": [
+        {
+          "title": "Machine Translation",
+          "start_index": 8,
+          "end_index": 8,
+          "node_id": "0018",
+          "summary": "The partial document discusses the performance and efficiency of the Transformer model in machine translation tasks, particularly on the WMT 2014 English-to-German and English-to-French benchmarks. Key points include: the Transformer achieves state-of-the-art BLEU scores\u201428.4 on English-to-German and 41.0 on English-to-French\u2014surpassing previous models, including ensembles, with significantly lower training costs measured in FLOPs. The base and big Transformer models demonstrate superior performance at a fraction of the training cost compared to prior models like GNMT, ConvS2S, and Deep-Att. Label smoothing (\u03b5=0.1) is used during training, which improves BLEU scores despite increasing perplexity. The document details training configurations, including GPU usage (8 P100 GPUs), training duration (~3.5 days), and inference settings such as beam search (beam size 4, length penalty 0.6), checkpoint averaging, and output length constraints. Table 2 provides a comparative analysis of BLEU scores and training costs across various models. Table 3 presents ablation studies on the Transformer\u2019s architecture, showing that performance is sensitive to the number of attention heads and key/value dimensions, with optimal performance at a balanced configuration. The results highlight the Transformer\u2019s efficiency, scalability, and effectiveness in machine translation."
+        },
+        {
+          "title": "Model Variations",
+          "start_index": 8,
+          "end_index": 9,
+          "node_id": "0019",
+          "summary": "The partial document covers the performance and architecture of the Transformer model in machine translation tasks, focusing on key results and ablation studies. Main points include: (1) The Transformer achieves state-of-the-art BLEU scores on English-to-German and English-to-French translation tasks (WMT 2014), outperforming previous models and ensembles, including those based on recurrent or convolutional networks. (2) The model trains significantly faster and at much lower computational cost (measured in FLOPs) compared to prior models. (3) Label smoothing during training improves BLEU scores and accuracy despite increasing perplexity. (4) Ablation studies in Table 3 show that attention head count, key/value dimension, model size, dropout rate, and positional encoding method all impact performance, with optimal settings yielding the best results. (5) The Transformer's architecture, based entirely on attention mechanisms without recurrence or convolution, enables faster training and superior performance. (6) The authors conclude by highlighting the model's potential for broader applications beyond text, including multimodal tasks and efficient handling of large inputs, and note that the training code is publicly available."
+        }
+      ],
+      "node_id": "0017",
+      "summary": "The partial document discusses the performance and efficiency of the Transformer model in machine translation tasks, particularly on the WMT 2014 English-to-German and English-to-French benchmarks. Key points include: the Transformer achieves state-of-the-art BLEU scores\u201428.4 on English-to-German and 41.0 on English-to-French\u2014surpassing previous models, including ensembles, with significantly lower training costs measured in FLOPs. The base and big Transformer models demonstrate superior performance at a fraction of the training cost compared to prior models like GNMT, ConvS2S, and Deep-Attention models. Label smoothing (\u03b5=0.1) is used during training, which improves BLEU scores despite increasing perplexity. The training setup involves averaging multiple checkpoints, beam search with specific hyperparameters, and a maximum output length constraint. Table 2 provides a comparative analysis of BLEU scores and training costs across various models. Section 6.2 presents ablation studies on the Transformer\u2019s architecture, showing that attention head count and dimensionality impact performance, with optimal results at a balanced configuration. The document emphasizes the Transformer\u2019s efficiency, scalability, and effectiveness in translation tasks."
+    },
+    {
+      "title": "Conclusion",
+      "start_index": 9,
+      "end_index": 9,
+      "node_id": "0020",
+      "summary": "The partial document discusses variations on the Transformer architecture as evaluated on the English-to-German translation task using the newstest2013 development set. Key points include: (1) The base model uses 6 layers, 512-dimensional embeddings, 2048-dimensional feed-forward networks, 8 attention heads, and 64 dimensions for keys and values, achieving a perplexity of 4.92 and BLEU score of 25.8. (2) Experiments show that reducing the attention key size (d_k) degrades performance, suggesting that dot-product compatibility may not be optimal and that more sophisticated compatibility functions could help. (3) Larger models (e.g., with d_model = 1024 or 4096) generally perform better, and dropout (p_drop) is effective in reducing overfitting. (4) Replacing sinusoidal positional encodings with learned positional embeddings yields nearly identical results to the base model, indicating that the choice of positional encoding has minimal impact. (5) The document concludes by highlighting the Transformer's advantages\u2014faster training and state-of-the-art performance on translation tasks\u2014and outlines future research directions, including applying Transformers to non-text modalities (e.g., images, audio, video), exploring restricted attention mechanisms for efficiency, and reducing the sequential nature of generation. The code is publicly available on GitHub."
+    },
+    {
+      "title": "References",
+      "start_index": 10,
+      "end_index": 11,
+      "node_id": "0021",
+      "summary": "The partial document is a list of academic references related to neural networks and machine learning, with a focus on natural language processing (NLP) and deep learning architectures. Key topics covered include: recurrent neural networks (RNNs) and their variants (e.g., LSTM, GRU), attention mechanisms, neural machine translation (NMT), sequence-to-sequence models, transformer architectures (implied through attention and sequence modeling), deep residual networks, and optimization techniques such as Adam and dropout. Additional references discuss innovations like layer normalization, subword units for rare words, structured attention, memory networks, and large-scale neural network designs such as mixture-of-experts. The references span foundational works (e.g., LSTM, attention) to advanced models (e.g., Google\u2019s NMT system, Xception, deep reinforcement learning for summarization), highlighting developments in both theory and practical applications in NLP and computer vision."
+    }
+  ]
+}

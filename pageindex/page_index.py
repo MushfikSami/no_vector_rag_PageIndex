@@ -119,8 +119,9 @@ def toc_detector_single_page(content, model=None):
     response = ChatGPT_API(model=model, prompt=prompt)
     # print('response', response)
     json_content = extract_json(response)    
-    return json_content['toc_detected']
-
+    if isinstance(json_content,dict):
+        return json_content.get('toc_detected', False)
+    return False
 
 def check_if_toc_extraction_is_complete(content, toc, model=None):
     prompt = f"""
