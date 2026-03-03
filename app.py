@@ -1,22 +1,86 @@
 import os
 import json
+import re
+import time
+import hashlib
+import asyncio
+from datetime import datetime
 import gradio as gr
 from openai import OpenAI
+from curl_cffi.requests import AsyncSession
+from selectolax.parser import HTMLParser
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ==========================================
 # 1. Configuration & Setup
 # ==========================================
-LOCAL_API_BASE = "http://localhost:5000/v1"
+# Local LLM Config
+LOCAL_API_BASE = "http://localhost:5000/v1"  # Or 5000 based on your vLLM setup
 LOCAL_MODEL = "cpatonn/Qwen3-30B-A3B-Instruct-2507-AWQ-4bit"
-DUMMY_KEY = "local_vllm_dummy_key"
+DUMMY_KEY = "no_key"
 
 client = OpenAI(base_url=LOCAL_API_BASE, api_key=DUMMY_KEY)
 
+# Local RAG Config
 JSON_PATH = "bangladesh_services_data_structure.json"
 MD_PATH = "bangladesh_services_data.md"
 
+# Web Search Config
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+CACHE_FILE = "rag_cache.json"
+MAX_CHARS = 1000       
+MAX_RESULTS = 3       
+FAST_TIMEOUT = 5  
+ADVANCED_TIMEOUT = 10
+
+# Initialize Cache
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, 'r') as f: return json.load(f)
+    return {}
+
+GLOBAL_CACHE = load_cache()
+
 # ==========================================
-# 2. Core PageIndex Logic
+# 2. Web Search Logic
+# ==========================================
+class FastParser:
+    @staticmethod
+    def clean_html(html):
+        if not html: return ""
+        tree = HTMLParser(html)
+        for tag in tree.css('script, style, nav, footer, header, svg'): tag.decompose()
+        text = tree.body.text(separator=' ', strip=True) if tree.body else ""
+        return re.sub(r'\s+', ' ', text).strip()[:MAX_CHARS]
+
+async def perform_search(query: str, session: AsyncSession, is_advanced: bool):
+    search_depth = "advanced" if is_advanced else "basic"
+    timeout = ADVANCED_TIMEOUT if is_advanced else FAST_TIMEOUT
+    max_results = 5 if is_advanced else MAX_RESULTS 
+    clean_query = f"{query} বাংলাদেশ" if not query.endswith("বাংলাদেশ") else query
+    
+    payload = {
+        "api_key": TAVILY_API_KEY,
+        "query": f"{clean_query} latest 2026",
+        "search_depth": search_depth, 
+        "include_answer": 'basic',
+        "max_results": max_results
+    }
+    
+    try:
+        resp = await session.post("https://api.tavily.com/search", json=payload, timeout=timeout)
+        if resp.status_code == 200:
+            res = [{"url": r["url"], "content": FastParser.clean_html(r.get("content", ""))} 
+                   for r in resp.json().get("results", [])]
+            return sorted(res, key=lambda x: x['url'])
+    except Exception as e: 
+        print(f"Search error: {e}")
+    return []
+
+# ==========================================
+# 3. Local PageIndex Logic
 # ==========================================
 def load_data(json_path, md_path):
     with open(json_path, 'r', encoding='utf-8') as f:
@@ -34,33 +98,27 @@ except Exception as e:
     root_structure, md_lines = [], []
 
 def navigate_tree(query, current_nodes, depth=0):
-    """Recursively navigate the tree by asking the LLM to choose the best sub-branch."""
-    # Base case: We reached a leaf node
-    if not current_nodes or not isinstance(current_nodes, list):
-        return None
-        
-    # If the current node is a leaf (no 'nodes' key), return it
-    if len(current_nodes) == 1 and not current_nodes[0].get('nodes'):
-        return current_nodes[0]
+    if not current_nodes or not isinstance(current_nodes, list): return None
+    if len(current_nodes) == 1 and not current_nodes[0].get('nodes'): return current_nodes[0]
 
-    # Create a menu of the current level's options
     menu = ""
     for idx, node in enumerate(current_nodes):
         title = node.get('title', 'Unknown')
-        # If it's a category, it might not have a summary, so just use the title
         summary = node.get('summary', 'Category Heading') 
         menu += f"[{idx}] Title: {title}\nSummary/Context: {summary}\n\n"
         
-    prompt = f"""You are a precise routing agent. 
-    Below are the options at the current level of a document's Table of Contents.
-    Read the user's query and identify the SINGLE most relevant section index (the number in the brackets) to explore further.
-    
+    prompt = f"""You are a precise routing agent navigating a hierarchical Table of Contents for Bangladesh Government Services. 
     Current Options:
     {menu}
     
     User Query: "{query}"
     
-    Return ONLY the integer index inside the brackets. Do not include any other text or explanation.
+    INSTRUCTIONS:
+    1. Read the User Query in Bengali.
+    2. Mentally translate the query to understand its core topic.
+    3. Identify the SINGLE most relevant section index from the Current Options that matches this topic.
+    
+    Return ONLY the integer index inside the brackets. Do not include any other text.
     """
     
     response = client.chat.completions.create(
@@ -70,61 +128,43 @@ def navigate_tree(query, current_nodes, depth=0):
     )
     
     try:
-        # Extract the index
         index_str = "".join(filter(str.isdigit, response.choices[0].message.content))
-        selected_idx = int(index_str)
-        selected_node = current_nodes[selected_idx]
+        selected_node = current_nodes[int(index_str)]
     except (ValueError, IndexError):
-        # Fallback to the first option if the LLM fails to format the number
         selected_node = current_nodes[0]
         
-    # If the selected node has children, recurse deeper
     if selected_node.get('nodes'):
-        print(f"  ↳ Navigating deeper into: {selected_node.get('title')}")
         return navigate_tree(query, selected_node['nodes'], depth + 1)
     
-    # Otherwise, we found our leaf node
     return selected_node
 
-def find_next_leaf_node(structure, current_line_num):
-    """Helper to find the line number of the next section to know where to stop reading."""
-    all_leaves = extract_all_leaf_nodes(structure)
-    for node in all_leaves:
-        if node.get('line_num', 0) > current_line_num:
-            return node
-    return None
-
 def extract_all_leaf_nodes(structure):
-    """Used only for boundary detection, not for prompting."""
     leaves = []
     if isinstance(structure, dict):
-        if not structure.get('nodes'): 
-            leaves.append(structure)
+        if not structure.get('nodes'): leaves.append(structure)
         else:
-            for node in structure.get('nodes', []):
-                leaves.extend(extract_all_leaf_nodes(node))
+            for node in structure.get('nodes', []): leaves.extend(extract_all_leaf_nodes(node))
     elif isinstance(structure, list):
-        for item in structure:
-            leaves.extend(extract_all_leaf_nodes(item))
+        for item in structure: leaves.extend(extract_all_leaf_nodes(item))
     return leaves
 
 def extract_markdown_text(target_node, root_structure, markdown_lines):
     start_line = target_node.get('line_num', 1) - 1
-    next_node = find_next_leaf_node(root_structure, target_node.get('line_num', 1))
+    all_leaves = extract_all_leaf_nodes(root_structure)
+    next_node = next((n for n in all_leaves if n.get('line_num', 0) > target_node.get('line_num', 1)), None)
     end_line = next_node.get('line_num', len(markdown_lines)) - 1 if next_node else len(markdown_lines)
     return "".join(markdown_lines[start_line:end_line])
 
 # ==========================================
-# 3. Gradio Interface Logic
+# 4. Master QA Bot (RAG -> Web Fallback)
 # ==========================================
-def rag_qa_bot(query, history):
+async def rag_qa_bot(query, history, is_advanced):
     if not root_structure:
-        yield "Error: Data not loaded properly. Check your file paths."
+        yield "Error: Local data not loaded properly."
         return
 
-    yield "🔍 **Agent is navigating the document tree...**"
-
-    # Step A: Traverse the Tree
+    # 1. Start Local RAG
+    yield "🔍 **Agent is navigating the local document tree...**"
     target_node = navigate_tree(query, root_structure)
     
     if not target_node:
@@ -132,16 +172,16 @@ def rag_qa_bot(query, history):
         return
         
     section_title = target_node.get('title', 'Unknown')
-    yield f"🔍 **Agent routed to section:** `{section_title}`\n\n_Reading document..._"
+    yield f"🔍 **Agent routed to local section:** `{section_title}`\n\n_Reading document..._"
 
-    # Step B: Extract Context
     raw_context = extract_markdown_text(target_node, root_structure, md_lines)
 
-    # Step C: Stream the Answer
-    prompt = f"""You are a helpful assistant for Bangladesh Government Services. 
+    # 2. Local RAG Prompt with Fallback Trigger
+    local_prompt = f"""You are a helpful assistant for Bangladesh Government Services. 
     Answer the user's question based STRICTLY on the provided context. 
-    If the answer is not in the context, say "I could not find the answer in the provided documents."
-    Always reply in Bengali (বাংলা).
+    
+    CRITICAL INSTRUCTION: If the exact answer is NOT in the context, you MUST output EXACTLY: [SEARCH_REQUIRED]
+    Otherwise, answer the question naturally in Bengali (বাংলা).
     
     Context:
     {raw_context}
@@ -149,39 +189,115 @@ def rag_qa_bot(query, history):
     User Question: {query}
     """
     
-    response = client.chat.completions.create(
+    local_response = client.chat.completions.create(
         model=LOCAL_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
+        messages=[{"role": "user", "content": local_prompt}],
+        temperature=0.1,
         stream=True 
     )
     
-    final_answer = f"🔍 **Agent routed to section:** `{section_title}`\n\n"
-    for chunk in response:
-        if chunk.choices[0].delta.content is not None:
-            final_answer += chunk.choices[0].delta.content
-            yield final_answer
+    final_output = f"🔍 **Local Match:** `{section_title}`\n\n"
+    buffer = ""
+    search_needed = False
+
+    # 3. Stream Interception Logic
+    for chunk in local_response:
+        delta = chunk.choices[0].delta.content or ""
+        buffer += delta
+        
+        # We wait until we have a few characters to see if it's triggering the fallback
+        
+        if "[SEARCH" in buffer:
+            search_needed = True
+            break
+          
+        yield final_output+buffer
+
+    # 4. Web Search Fallback Pipeline
+    if search_needed:
+        mode_text = "Advanced" if is_advanced else "Fast"
+        yield f"⚠️ **Not found in local documents.**\n\n🌐 **Triggering {mode_text} Web Search Fallback...**"
+        
+        # Check Cache First
+        hash_input = f"{query.lower().strip()}_{is_advanced}"
+        query_hash = hashlib.md5(hash_input.encode()).hexdigest()
+        
+        if query_hash in GLOBAL_CACHE:
+            c = GLOBAL_CACHE[query_hash]
+            yield f"🌐 **Web Answer (Cached):**\n\n{c['output']}\n\n**Sources:**\n" + "\n".join([f"- {s}" for s in c['sources']])
+            return
+
+        # Perform Search
+        async with AsyncSession() as session:
+            results = await perform_search(query, session, is_advanced)
+        
+        if not results:
+            yield "❌ **Not found locally, and web search returned no results.**"
+            return
+            
+        context = "\n---\n".join([r["content"] for r in results])
+        sources_md = "\n".join([f"- {r['url']}" for r in results])
+        yield f"🌐 **Web Search Complete! Synthesizing answer...**\n\n**Sources:**\n{sources_md}\n\n"
+
+        current_time = datetime.now().strftime("%A, %B %d, %Y")
+        
+        # Web Answer Prompt (From your custom code, adapted for Bengali UI)
+        web_prompt = f"""SYSTEM: You are a highly accurate and concise search assistant.
+        Current date: {current_time}. 
+
+        CRITICAL INSTRUCTIONS FOR RESPONSE LENGTH:
+        CATEGORY 1: Direct Factual Queries (names, dates, numbers) -> Answer in exactly 1 to 2 sentences.
+        CATEGORY 2: Complex Explanatory Queries (summaries, reasons) -> Answer in 5 to 10 sentences.
+        
+        Always reply in Bengali (বাংলা).
+
+        SOURCES:
+        {context}
+
+        USER QUERY: {query}
+        RESPONSE:"""
+
+        web_response = client.chat.completions.create(
+            model=LOCAL_MODEL,
+            messages=[{"role": "user", "content": web_prompt}],
+            temperature=0.2,
+            stream=True
+        )
+        
+        web_answer = f"🌐 **Web Answer:**\n\n"
+        raw_web_text = ""
+        for chunk in web_response:
+            delta = chunk.choices[0].delta.content or ""
+            raw_web_text += delta
+            yield web_answer + raw_web_text + f"\n\n**Sources:**\n{sources_md}"
+
+        # Cache the result
+        GLOBAL_CACHE[query_hash] = {"output": raw_web_text, "sources": [r['url'] for r in results]}
+        with open(CACHE_FILE, 'w') as f: json.dump(GLOBAL_CACHE, f)
 
 # ==========================================
-# 4. Launch Gradio App
+# 5. Launch Gradio App
 # ==========================================
 with gr.Blocks() as demo:
     gr.Markdown(
         """
-        # 🇧🇩 BD Government Services QA (PageIndex RAG)
-        Ask questions about birth registration, health services, and more. 
-        Powered by Hierarchical Vectorless Reasoning Retrieval.
+        # 🇧🇩 BD Government Services QA (Hybrid RAG)
+        Powered by Hierarchical Vectorless Retrieval with an ultra-fast Web Search Fallback agent.
         """
     )
     
     gr.ChatInterface(
         fn=rag_qa_bot,
         chatbot=gr.Chatbot(height=500),
-        textbox=gr.Textbox(placeholder="সরকারি সেবা সম্পর্কে আপনার প্রশ্ন লিখুন... (উদাঃ ডেঙ্গু পরীক্ষা কোথায় বিনামূল্যে করা যায়?)", container=False, scale=7),
+        textbox=gr.Textbox(placeholder="সরকারি সেবা বা দেশের খবর সম্পর্কে আপনার প্রশ্ন লিখুন...", container=False, scale=7),
+        additional_inputs=[
+            gr.Checkbox(label="🔬 Advanced Web Search (if local fails)", value=False)
+        ],
         title=None,
-        description=None
+        description=None,
+        
     )
 
 if __name__ == "__main__":
-    print("🚀 Launching Gradio Server...")
-    demo.launch(share=True)
+    print("🚀 Launching Hybrid RAG Gradio Server...")
+    demo.launch(server_name="0.0.0.0", server_port=7860)
